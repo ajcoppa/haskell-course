@@ -246,8 +246,10 @@ find ::
   (a -> Bool)
   -> List a
   -> Optional a
-find =
-  error "todo"
+find _ Nil = Empty
+find f (x :. xs) = if f x
+  then Full x
+  else find f xs
 
 -- | Determine if the length of the given list is greater than 4.
 --
@@ -265,8 +267,16 @@ find =
 lengthGT4 ::
   List a
   -> Bool
-lengthGT4 =
-  error "todo"
+lengthGT4 = lengthGT4Helper 0
+
+lengthGT4Helper ::
+  Int
+  -> List a
+  -> Bool
+lengthGT4Helper n Nil = (n > 4)
+lengthGT4Helper n (_ :. xs) = if n > 4
+  then True
+  else lengthGT4Helper (n + 1) xs
 
 -- | Reverse a list.
 --
@@ -294,8 +304,7 @@ produce ::
   (a -> a)
   -> a
   -> List a
-produce =
-  error "todo"
+produce f x = x :. produce f (f x)
 
 -- | Do anything other than reverse a list.
 -- Is it even possible?
@@ -309,8 +318,7 @@ produce =
 notReverse ::
   List a
   -> List a
-notReverse =
-  error "todo"
+notReverse = reverse
 
 hlist ::
   List a
