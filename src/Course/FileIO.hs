@@ -62,8 +62,12 @@ the contents of c
 -- /Tip:/ use @getArgs@ and @run@
 main ::
   IO ()
-main =
-  error "todo"
+main = getArgs >>= \args ->
+  let path = headOr "" args in
+  if path == ""
+  then putStrLn "Please supply a filename as the first argument."
+  else getFile path >>= \(_, contents) ->
+    run contents
 
 type FilePath =
   Chars
@@ -72,31 +76,31 @@ type FilePath =
 run ::
   Chars
   -> IO ()
-run =
-  error "todo"
+run contents = getFiles (lines contents) >>= printFiles
 
 getFiles ::
   List FilePath
   -> IO (List (FilePath, Chars))
-getFiles =
-  error "todo"
+getFiles paths = sequence $ getFile <$> paths
 
 getFile ::
   FilePath
   -> IO (FilePath, Chars)
-getFile =
-  error "todo"
+getFile path = readFile path >>= \contents ->
+  return (path, contents)
 
 printFiles ::
   List (FilePath, Chars)
   -> IO ()
-printFiles =
-  error "todo"
+printFiles fs = sequence ((uncurry printFile) <$> fs) >>
+  return ()
 
 printFile ::
   FilePath
   -> Chars
   -> IO ()
-printFile =
-  error "todo"
+printFile path contents =
+  putStrLn ("============ " ++ path) >>
+  putStrLn contents >>
+  return ()
 
