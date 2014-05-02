@@ -133,8 +133,8 @@ filtering ::
   (a -> f Bool)
   -> List a
   -> f (List a)
-filtering =
-  error "todo"
+filtering p = foldRight f (pure Nil)
+  where f x = lift2 (\valid -> if valid then (x :.) else id) (p x)
 
 -----------------------
 -- SUPPORT LIBRARIES --
