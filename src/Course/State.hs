@@ -35,29 +35,32 @@ newtype State s a =
 -- >>> runState ((+1) <$> pure 0) 0
 -- (1,0)
 instance Functor (State s) where
-  (<$>) =
-      error "todo"
+  (<$>) f (State g) =
+    State $ \s -> let (x,s') = g s in (f x, s')
 
 -- | Implement the `Apply` instance for `State s`.
 -- >>> runState (pure (+1) <*> pure 0) 0
 -- (1,0)
 instance Apply (State s) where
-  (<*>) =
-    error "todo"
+  (<*>) (State sf) (State sx) = State $ \s ->
+    let appliedSf = sf s
+        f = fst appliedSf
+        appliedSx = sx s
+        x = fst appliedSx
+    in (f x,s)
 
 -- | Implement the `Applicative` instance for `State s`.
 -- >>> runState (pure 2) 0
 -- (2,0)
 instance Applicative (State s) where
-  pure =
-    error "todo"
+  pure x = State $ \s -> (x,s)
 
 -- | Implement the `Bind` instance for `State s`.
 -- >>> runState ((const $ put 2) =<< put 1) 0
 -- ((),2)
 instance Bind (State s) where
-  (=<<) =
-    error "todo"
+  (=<<) f (State g) =
+    State $ \s -> let (x,s') = g s in runState (f x) s'
 
 instance Monad (State s) where
 
@@ -68,8 +71,7 @@ exec ::
   State s a
   -> s
   -> s
-exec =
-  error "todo"
+exec (State f) x = snd $ f x
 
 -- | Run the `State` seeded with `s` and retrieve the resulting value.
 --
@@ -78,8 +80,7 @@ eval ::
   State s a
   -> s
   -> a
-eval =
-  error "todo"
+eval (State f) x = fst $ f x
 
 -- | A `State` where the state also distributes into the produced value.
 --
@@ -87,8 +88,7 @@ eval =
 -- (0,0)
 get ::
   State s s
-get =
-  error "todo"
+get = State $ \s -> (s,s)
 
 -- | A `State` where the resulting state is seeded with the given value.
 --
@@ -97,8 +97,7 @@ get =
 put ::
   s
   -> State s ()
-put =
-  error "todo"
+put x = State $ \_ -> ((),x)
 
 -- | Find the first element in a `List` that satisfies a given predicate.
 -- It is possible that no element is found, hence an `Optional` result.
@@ -119,8 +118,10 @@ findM ::
   (a -> f Bool)
   -> List a
   -> f (Optional a)
-findM =
-  error "todo"
+findM _ Nil = pure Empty
+findM f (x :. xs) =
+  (f x) >>= \p ->
+    if p then pure (Full x) else findM f xs
 
 -- | Find the first element in a `List` that repeats.
 -- It is possible that no element repeats, hence an `Optional` result.
