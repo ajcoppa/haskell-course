@@ -30,8 +30,16 @@ newtype StateT s f a =
 -- >>> runStateT ((+1) <$> (pure 2) :: StateT Int List Int) 0
 -- [(3,0)]
 instance Functor f => Functor (StateT s f) where
-  (<$>) =
-    error "todo"
+  g <$> (StateT stateTF) = StateT (\s ->
+    -- stateTF :: s -> f (a, s)
+    -- stateResult :: f (a, s)
+    let stateResult = stateTF s
+        -- Have an f (a, s) and an (a -> b), need to get f (b, s)
+        -- If we have a function with this type:
+        applyToFirst :: (a -> b) -> (a, c) -> (b, c)
+        applyToFirst f (x,y) = (f x, y)
+    -- then we can fmap it over f to get f (b, s)!
+    in (applyToFirst g) <$> stateResult)
 
 -- | Implement the `Apply` instance for @StateT s f@ given a @Bind f@.
 --
@@ -53,8 +61,7 @@ instance Bind f => Apply (StateT s f) where
 -- >>> runStateT ((pure 2) :: StateT Int List Int) 0
 -- [(2,0)]
 instance Monad f => Applicative (StateT s f) where
-  pure =
-    error "todo"
+  pure x = StateT $ \s -> pure (x, s)
 
 -- | Implement the `Bind` instance for @StateT s f@ given a @Monad f@.
 -- Make sure the state value is passed through in `bind`.
