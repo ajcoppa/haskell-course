@@ -43,11 +43,9 @@ instance Functor (State s) where
 -- (1,0)
 instance Apply (State s) where
   (<*>) (State sf) (State sx) = State $ \s ->
-    let appliedSf = sf s
-        f = fst appliedSf
-        appliedSx = sx s
-        x = fst appliedSx
-    in (f x,s)
+    let (f, s') = sf s
+        (x, s'') = sx s'
+    in (f x, s'')
 
 -- | Implement the `Applicative` instance for `State s`.
 -- >>> runState (pure 2) 0
@@ -134,8 +132,10 @@ firstRepeat ::
   Ord a =>
   List a
   -> Optional a
-firstRepeat =
-  error "todo"
+firstRepeat xs =
+  eval (findM f xs) S.empty where
+    f x = State $ \s ->
+      (S.member x s, S.insert x s)
 
 -- | Remove all duplicate elements in a `List`.
 -- /Tip:/ Use `filtering` and `State` with a @Data.Set#Set@.
@@ -147,8 +147,9 @@ distinct ::
   Ord a =>
   List a
   -> List a
-distinct =
-  error "todo"
+distinct xs =
+  eval (filtering f xs) S.empty where
+  f x = State $ \s -> (S.notMember x s, S.insert x s)
 
 -- | A happy number is a positive integer, where the sum of the square of its digits eventually reaches 1 after repetition.
 -- In contrast, a sad number (not a happy number) is where the sum of the square of its digits never reaches 1
