@@ -162,8 +162,9 @@ distinct' ::
   (Ord a, Num a) =>
   List a
   -> List a
-distinct' =
-  error "todo"
+distinct' xs =
+  eval (filtering f xs) S.empty where
+  f x = State $ \s -> (S.notMember x s, S.insert x s)
 
 -- | Remove all duplicate elements in a `List`.
 -- However, if you see a value greater than `100` in the list,
@@ -180,8 +181,12 @@ distinctF ::
   (Ord a, Num a) =>
   List a
   -> Optional (List a)
-distinctF =
-  error "todo"
+distinctF xs =
+  evalT (filtering f xs) S.empty where
+  f x = StateT $ \s ->
+    if x > 100
+    then Empty
+    else Full (S.notMember x s, S.insert x s)
 
 -- | An `OptionalT` is a functor of an `Optional` value.
 data OptionalT f a =
