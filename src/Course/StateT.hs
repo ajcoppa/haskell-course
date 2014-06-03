@@ -232,18 +232,21 @@ instance Applicative f => Applicative (OptionalT f) where
 instance Monad m => Bind (OptionalT m) where
   g =<< otMOX =
     {-
+    =<< :: (a -> OptionalT m b)
+        -> OptionalT m a
+        -> OptionalT m b
+
     g :: (a -> OptionalT m b)
+    otMOX :: OptionalT m a
+
     otMOX stands for an OptionalT wrapper around an m (Optional a).
 
     Since g takes an a and gives us the OptionalT m b that we ultimately want,
-    let's start by deconstructing our OptionalT m a.
+    let's work to deconstruct our OptionalT m a into an a.
 
-    First, let's strip the OptionalT covering. (We could have done it via
-    pattern matching too.)
+    First, let's strip the OptionalT covering with runOptionalT.
     -}
-    let stripOptionalT :: OptionalT m a -> m (Optional a)
-        stripOptionalT (OptionalT x) = x
-        mOX = stripOptionalT otMOX
+    let mOX = runOptionalT otMOX
     {-
     That leaves us with an m (Optional a). If we use the fact that m is a monad
     to bind over it, then inside the binding we can treat it as an Optional a.
@@ -274,7 +277,7 @@ instance Monad m => Bind (OptionalT m) where
     back an entire OptionalT m b, so we need to strip off the OptionalT wrapper
     to satisfy our return type.
     -}
-        helper g (Full x) = stripOptionalT $ g x
+        helper g (Full x) = runOptionalT $ g x
     {-
     Now we've got an m (Optional b), and we've run g, fulfilling our goal.
 
