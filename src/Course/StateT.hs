@@ -200,29 +200,87 @@ data OptionalT f a =
 -- >>> runOptionalT $ (+1) <$> OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Empty]
 instance Functor f => Functor (OptionalT f) where
-  (<$>) =
-    error "todo"
+  f <$> (OptionalT x) = OptionalT $ (mapOptional f) <$> x
+  -- or...            = OptionalT $ (f <$>) <$> x
 
 -- | Implement the `Apply` instance for `OptionalT f` given a Apply f.
 --
 -- >>> runOptionalT $ OptionalT (Full (+1) :. Full (+2) :. Nil) <*> OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Empty,Full 3,Empty]
 instance Apply f => Apply (OptionalT f) where
-  (<*>) =
-    error "todo"
+  (OptionalT foF) <*> (OptionalT foX) = OptionalT $
+    (twiceOptional ($)) <$> foF <*> foX
+  {- Explanation: twiceOptional feeds two Optionals into a function,
+  returning Empty if either argument is Empty. If we make our function
+  ($), it'll apply a function we give it to a value we give it, returning
+  Empty if either is Empty!
+
+  But we don't directly have Optionals, we have Optionals wrapped inside
+  another instance of Apply, so we have to <$> and <*> our twiceOptional'ed
+  ($) to get inside the Apply instance to the inner Optional values.
+
+  Note: lift2 could also be used as a more general twiceOptional. -}
 
 -- | Implement the `Applicative` instance for `OptionalT f` given a Applicative f.
 instance Applicative f => Applicative (OptionalT f) where
-  pure =
-    error "todo"
+  pure x = OptionalT $ pure (Full x)
 
 -- | Implement the `Bind` instance for `OptionalT f` given a Monad f.
 --
 -- >>> runOptionalT $ (\a -> OptionalT (Full (a+1) :. Full (a+2) :. Nil)) =<< OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Full 3,Empty]
-instance Monad f => Bind (OptionalT f) where
-  (=<<) =
-    error "todo"
+instance Monad m => Bind (OptionalT m) where
+  g =<< otMOX =
+    {-
+    g :: (a -> OptionalT m b)
+    otMOX stands for an OptionalT wrapper around an m (Optional a).
+
+    Since g takes an a and gives us the OptionalT m b that we ultimately want,
+    let's start by deconstructing our OptionalT m a.
+
+    First, let's strip the OptionalT covering. (We could have done it via
+    pattern matching too.)
+    -}
+    let stripOptionalT :: OptionalT m a -> m (Optional a)
+        stripOptionalT (OptionalT x) = x
+        mOX = stripOptionalT otMOX
+    {-
+    That leaves us with an m (Optional a). If we use the fact that m is a monad
+    to bind over it, then inside the binding we can treat it as an Optional a.
+
+    What should the type signature for our helper bound function look like?
+    * It needs to return an m (Optional b) since we're passing in an
+    m (Optional a).
+    * It should take an Optional a value since that's what we'll get when
+    we feed =<< an m (Optional a).
+    * We'll want to run g inside the binding since that's the whole purpose
+    of unwrapping our starting value, so it needs to take in g, which has type
+    (a -> OptionalT m b).
+    -}
+        helper :: Monad m =>
+                  (a -> OptionalT m b)
+                  -> Optional a
+                  -> m (Optional b)
+    {-
+    Hmm. What should it do to fulfill that signature?
+
+    Well, if our value is Empty we don't need to actually run g. We just need
+    to wrap the Empty up into a default monadic context, so pure should work,
+    and it'll give us the m (Optional b) result we want.
+    -}
+        helper _ Empty = pure Empty
+    {-
+    If our value is Full x, we can extract the x and run g with it. But we get
+    back an entire OptionalT m b, so we need to strip off the OptionalT wrapper
+    to satisfy our return type.
+    -}
+        helper g (Full x) = stripOptionalT $ g x
+    {-
+    Now we've got an m (Optional b), and we've run g, fulfilling our goal.
+
+    All we have to do now is add an outer OptionalT wrapper, and we're done!
+    -}
+    in OptionalT $ helper g =<< mOX
 
 instance Monad f => Monad (OptionalT f) where
 
