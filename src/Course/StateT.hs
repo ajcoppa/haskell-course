@@ -297,18 +297,16 @@ data Logger l a =
 -- >>> (+3) <$> Logger (listh [1,2]) 3
 -- Logger [1,2] 6
 instance Functor (Logger l) where
-  (<$>) =
-    error "todo"
+  f <$> (Logger ls x) = Logger ls (f x)
 
 -- | Implement the `Apply` instance for `Logger`.
 instance Apply (Logger l) where
-  (<*>) =
-    error "todo"
+  (Logger fL f) <*> (Logger xL x) =
+    Logger (fL ++ xL) (f x)
 
 -- | Implement the `Applicative` instance for `Logger`.
 instance Applicative (Logger l) where
-  pure =
-    error "todo"
+  pure = Logger Nil
 
 -- | Implement the `Bind` instance for `Logger`.
 -- The `bind` implementation must append log values to maintain associativity.
@@ -316,8 +314,16 @@ instance Applicative (Logger l) where
 -- >>> (\a -> Logger (listh [4,5]) (a+3)) =<< Logger (listh [1,2]) 3
 -- Logger [1,2,4,5] 6
 instance Bind (Logger l) where
-  (=<<) =
-    error "todo"
+  f =<< (Logger xL x) =
+    -- f :: a -> Logger l b
+    let newLogger = f x
+        getLog :: (Logger l a) -> List l
+        getLog (Logger ls _) = ls
+        getValue :: (Logger l a) -> a
+        getValue (Logger _ z) = z
+        newLogs = getLog newLogger
+        y = getValue newLogger
+    in Logger (xL ++ newLogs) (y)
 
 instance Monad (Logger l) where
 
@@ -329,8 +335,7 @@ log1 ::
   l
   -> a
   -> Logger l a
-log1 =
-  error "todo"
+log1 l x = Logger (l :. Nil) x
 
 -- | Remove all duplicate integers from a list. Produce a log as you go.
 -- If there is an element above 100, then abort the entire computation and produce no result.
