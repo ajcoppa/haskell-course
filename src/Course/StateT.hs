@@ -361,5 +361,25 @@ distinctG ::
   (Integral a, Show a) =>
   List a
   -> Logger Chars (Optional (List a))
-distinctG =
-  error "todo"
+distinctG xs =
+  -- filtering ::
+  --   Applicative f =>
+  --   (a -> f Bool)
+  --   -> List a
+  --   -> f (List a)
+  runOptionalT $ evalT (filtering f xs) S.empty where
+    f :: (Integral a, Show a) =>
+         a -> StateT (S.Set a) (OptionalT (Logger Chars)) Bool
+    f x = StateT $ \s ->
+      -- base case to get types right:
+      -- OptionalT $ Logger Nil Empty
+      let xStr = listh $ show x
+          message = if x > 100
+            then ("aborting > 100: " ++ xStr) :. Nil
+            else if even x
+              then ("even number: " ++ xStr) :. Nil
+              else Nil
+          optValue = if x > 100
+            then Empty
+            else Full (S.notMember x s, S.insert x s)
+      in OptionalT $ Logger message optValue
