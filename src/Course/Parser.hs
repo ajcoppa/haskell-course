@@ -78,8 +78,7 @@ unexpectedCharParser c =
 valueParser ::
   a
   -> Parser a
-valueParser =
-  error "todo"
+valueParser x = P $ \input -> Result input x
 
 -- | Return a parser that always fails with the given error.
 --
@@ -87,8 +86,7 @@ valueParser =
 -- True
 failed ::
   Parser a
-failed =
-  error "todo"
+failed = P $ \_ -> ErrorResult Failed
 
 -- | Return a parser that succeeds with a character off the input or fails with an error if the input is empty.
 --
@@ -99,8 +97,9 @@ failed =
 -- True
 character ::
   Parser Char
-character =
-  error "todo"
+character = P f
+  where f Nil = ErrorResult UnexpectedEof
+        f (c :. cs) = Result cs c
 
 -- | Return a parser that maps any succeeding result with the given function.
 --
@@ -113,8 +112,12 @@ mapParser ::
   (a -> b)
   -> Parser a
   -> Parser b
-mapParser =
-  error "todo"
+mapParser f pa = P $ \input ->
+  mapParseResult f $ parse pa input
+  where
+    mapParseResult :: (a -> b) -> ParseResult a -> ParseResult b
+    mapParseResult g (Result s x) = Result s (g x)
+    mapParseResult _ (ErrorResult x) = ErrorResult x :: ParseResult b
 
 -- | This is @mapParser@ with the arguments flipped.
 -- It might be more helpful to use this function if you prefer this argument order.
@@ -150,8 +153,12 @@ bindParser ::
   (a -> Parser b)
   -> Parser a
   -> Parser b
-bindParser =
-  error "todo"
+bindParser f pa = P $ \input ->
+  bindParseResult f $ parse pa input
+  where
+    bindParseResult :: (a -> Parser b) -> ParseResult a -> ParseResult b
+    bindParseResult g (Result s x) = parse (g x) s
+    bindParseResult _ (ErrorResult x) = ErrorResult x :: ParseResult b
 
 -- | This is @bindParser@ with the arguments flipped.
 -- It might be more helpful to use this function if you prefer this argument order.
@@ -180,8 +187,12 @@ flbindParser =
   Parser a
   -> Parser b
   -> Parser b
-(>>>) =
-  error "todo"
+pa >>> pb = P $ \input ->
+  processParseResult pb $ parse pa input
+  where
+    processParseResult :: Parser b -> ParseResult a -> ParseResult b
+    processParseResult pb' (Result s _x) = parse pb' s
+    processParseResult _ (ErrorResult x) = ErrorResult x :: ParseResult b
 
 -- | Return a parser that tries the first parser for a successful value.
 --
@@ -204,8 +215,13 @@ flbindParser =
   Parser a
   -> Parser a
   -> Parser a
-(|||) =
-  error "todo"
+pa1 ||| pa2 =
+  P $ \input ->
+  processParseResult pa2 input $ parse pa1 input
+  where
+    processParseResult :: Parser a -> Input -> ParseResult a -> ParseResult a
+    processParseResult _   _input r@(Result _ _) = r
+    processParseResult pa' input  _err = parse pa' input
 
 infixl 3 |||
 
