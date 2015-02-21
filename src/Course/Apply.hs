@@ -31,7 +31,7 @@ instance Apply Id where
 -- >>> (+1) :. (*2) :. Nil <*> 1 :. 2 :. 3 :. Nil
 -- [2,3,4,2,4,6]
 instance Apply List where
-  (<*>) fs xs = flatMap (\f -> map f xs) fs
+  fs <*> xs = flatMap (\f -> map f xs) fs
 
 -- | Implement @Apply@ instance for @Optional@.
 --
@@ -63,7 +63,7 @@ instance Apply Optional where
 -- >>> ((*) <*> (+2)) 3
 -- 15
 instance Apply ((->) t) where
-  (<*>) f g = \x -> f x . g $ x
+  f <*> g = \x -> f x . g $ x
 
 -- | Apply a binary function in the environment.
 --

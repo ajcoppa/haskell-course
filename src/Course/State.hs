@@ -35,7 +35,7 @@ newtype State s a =
 -- >>> runState ((+1) <$> pure 0) 0
 -- (1,0)
 instance Functor (State s) where
-  (<$>) f (State g) =
+  f <$> (State g) =
     State $ \s -> let (x,s') = g s in (f x, s')
 
 -- | Implement the `Apply` instance for `State s`.
@@ -46,7 +46,7 @@ instance Functor (State s) where
 -- >>> runState (State (\s -> ((+3), s P.++ ["apple"])) <*> State (\s -> (7, s P.++ ["banana"]))) []
 -- (10,["apple","banana"])
 instance Apply (State s) where
-  (<*>) (State sf) (State sx) = State $ \s ->
+  (State sf) <*> (State sx) = State $ \s ->
     let (f, s') = sf s
         (x, s'') = sx s'
     in (f x, s'')
@@ -61,7 +61,7 @@ instance Applicative (State s) where
 -- >>> runState ((const $ put 2) =<< put 1) 0
 -- ((),2)
 instance Bind (State s) where
-  (=<<) f (State g) =
+  f =<< (State g) =
     State $ \s -> let (x,s') = g s in runState (f x) s'
 
 instance Monad (State s) where
