@@ -1,5 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Course.StateT where
@@ -9,13 +11,16 @@ import Course.Id
 import Course.Optional
 import Course.List
 import Course.Functor
-import Course.Apply
 import Course.Applicative
-import Course.Bind
 import Course.Monad
 import Course.State
 import qualified Data.Set as S
 import qualified Prelude as P
+
+-- $setup
+-- >>> import Test.QuickCheck
+-- >>> import qualified Prelude as P(fmap)
+-- >>> instance Arbitrary a => Arbitrary (List a) where arbitrary = P.fmap listh arbitrary
 
 -- | A `StateT` is a function from a state value `s` to a functor f of (a produced value `a`, and a resulting state `s`).
 newtype StateT s f a =
@@ -30,6 +35,10 @@ newtype StateT s f a =
 -- >>> runStateT ((+1) <$> (pure 2) :: StateT Int List Int) 0
 -- [(3,0)]
 instance Functor f => Functor (StateT s f) where
+  (<$>) ::
+    (a -> b)
+    -> StateT s f a
+    -> StateT s f b
   g <$> (StateT stateTF) = StateT (\s ->
     -- stateTF :: s -> f (a, s)
     -- stateResult :: f (a, s)
@@ -41,7 +50,13 @@ instance Functor f => Functor (StateT s f) where
     -- then we can fmap it over f to get f (b, s)!
     in (applyToFirst g) <$> stateResult)
 
--- | Implement the `Apply` instance for @StateT s f@ given a @Bind f@.
+-- | Implement the `Applicative` instance for @StateT s f@ given a @Monad f@.
+--
+-- >>> runStateT (pure 2) 0
+-- (2,0)
+--
+-- >>> runStateT ((pure 2) :: StateT Int List Int) 0
+-- [(2,0)]
 --
 -- >>> runStateT (pure (+2) <*> ((pure 2) :: StateT Int List Int)) 0
 -- [(4,0)]
@@ -49,7 +64,19 @@ instance Functor f => Functor (StateT s f) where
 -- >>> import qualified Prelude as P
 -- >>> runStateT (StateT (\s -> Full ((+2), s P.++ [1])) <*> (StateT (\s -> Full (2, s P.++ [2])))) [0]
 -- Full (4,[0,1,2])
-instance Bind f => Apply (StateT s f) where
+--
+-- >>> runStateT (StateT (\s -> ((+2), s P.++ [1]) :. ((+3), s P.++ [1]) :. Nil) <*> (StateT (\s -> (2, s P.++ [2]) :. Nil))) [0]
+-- [(4,[0,1,2]),(5,[0,1,2])]
+instance Monad f => Applicative (StateT s f) where
+  pure ::
+    a
+    -> StateT s f a
+  pure x = StateT $ \s -> pure (x, s)
+
+  (<*>) ::
+   StateT s f (a -> b)
+    -> StateT s f a
+    -> StateT s f b
   (StateT stF) <*> (StateT stX) = StateT $ \s ->
     let mFWithState = stF s
         applyToFirst :: (a -> b) -> (a, c) -> (b, c)
@@ -57,28 +84,23 @@ instance Bind f => Apply (StateT s f) where
         bindF (f, s') = applyToFirst f <$> stX s'
     in bindF =<< mFWithState
 
--- | Implement the `Applicative` instance for @StateT s f@ given a @Applicative f@.
---
--- >>> runStateT (pure 2) 0
--- (2,0)
---
--- >>> runStateT ((pure 2) :: StateT Int List Int) 0
--- [(2,0)]
-instance Monad f => Applicative (StateT s f) where
-  pure x = StateT $ \s -> pure (x, s)
-
--- | Implement the `Bind` instance for @StateT s f@ given a @Monad f@.
+-- | Implement the `Monad` instance for @StateT s f@ given a @Monad f@.
 -- Make sure the state value is passed through in `bind`.
 --
 -- >>> runStateT ((const $ putT 2) =<< putT 1) 0
 -- ((),2)
-instance Monad f => Bind (StateT s f) where
+--
+-- >>> let modify f = StateT (\s -> pure ((), f s)) in runStateT (modify (+1) >>= \() -> modify (*2)) 7
+-- ((),16)
+instance Monad f => Monad (StateT s f) where
+  (=<<) ::
+    (a -> StateT s f b)
+    -> StateT s f a
+    -> StateT s f b
   f =<< (StateT stX) = StateT $ \s ->
     stX s >>= \(x, s') ->
     return (f x) >>= \(StateT y) ->
     y s'
-
-instance Monad f => Monad (StateT s f) where
 
 -- | A `State'` is `StateT` specialised to the `Id` functor.
 type State' s a =
@@ -158,6 +180,8 @@ putT x = StateT $ \_ -> return ((), x)
 -- | Remove all duplicate elements in a `List`.
 --
 -- /Tip:/ Use `filtering` and `State'` with a @Data.Set#Set@.
+--
+-- prop> distinct' xs == distinct' (flatMap (\x -> x :. x :. Nil) xs)
 distinct' ::
   (Ord a, Num a) =>
   List a
@@ -203,11 +227,13 @@ instance Functor f => Functor (OptionalT f) where
   f <$> (OptionalT x) = OptionalT $ (mapOptional f) <$> x
   -- or...            = OptionalT $ (f <$>) <$> x
 
--- | Implement the `Apply` instance for `OptionalT f` given a Apply f.
+-- | Implement the `Applicative` instance for `OptionalT f` given a Applicative f.
 --
 -- >>> runOptionalT $ OptionalT (Full (+1) :. Full (+2) :. Nil) <*> OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Empty,Full 3,Empty]
-instance Apply f => Apply (OptionalT f) where
+instance Applicative f => Applicative (OptionalT f) where
+  pure x = OptionalT $ pure (Full x)
+
   (OptionalT foF) <*> (OptionalT foX) = OptionalT $
     (twiceOptional ($)) <$> foF <*> foX
   {- Explanation: twiceOptional feeds two Optionals into a function,
@@ -221,15 +247,11 @@ instance Apply f => Apply (OptionalT f) where
 
   Note: lift2 could also be used as a more general twiceOptional. -}
 
--- | Implement the `Applicative` instance for `OptionalT f` given a Applicative f.
-instance Applicative f => Applicative (OptionalT f) where
-  pure x = OptionalT $ pure (Full x)
-
--- | Implement the `Bind` instance for `OptionalT f` given a Monad f.
+-- | Implement the `Monad` instance for `OptionalT f` given a Monad f.
 --
 -- >>> runOptionalT $ (\a -> OptionalT (Full (a+1) :. Full (a+2) :. Nil)) =<< OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Full 3,Empty]
-instance Monad m => Bind (OptionalT m) where
+instance Monad f => Monad (OptionalT f) where
   g =<< otMOX =
     {-
     =<< :: (a -> OptionalT m b)
@@ -285,8 +307,6 @@ instance Monad m => Bind (OptionalT m) where
     -}
     in OptionalT $ helper g =<< mOX
 
-instance Monad f => Monad (OptionalT f) where
-
 -- | A `Logger` is a pair of a list of log values (`[l]`) and an arbitrary value (`a`).
 data Logger l a =
   Logger (List l) a
@@ -299,27 +319,25 @@ data Logger l a =
 instance Functor (Logger l) where
   f <$> (Logger ls x) = Logger ls (f x)
 
--- | Implement the `Apply` instance for `Logger`.
---
--- >>> Logger (listh [1,2]) (+7) <*> Logger (listh [3,4]) 3
--- Logger [1,2,3,4] 10
-instance Apply (Logger l) where
-  (Logger fL f) <*> (Logger xL x) =
-    Logger (fL ++ xL) (f x)
-
 -- | Implement the `Applicative` instance for `Logger`.
 --
 -- >>> pure "table" :: Logger Int P.String
 -- Logger [] "table"
+--
+-- >>> Logger (listh [1,2]) (+7) <*> Logger (listh [3,4]) 3
+-- Logger [1,2,3,4] 10
 instance Applicative (Logger l) where
   pure = Logger Nil
 
--- | Implement the `Bind` instance for `Logger`.
+  (Logger fL f) <*> (Logger xL x) =
+    Logger (fL ++ xL) (f x)
+
+-- | Implement the `Monad` instance for `Logger`.
 -- The `bind` implementation must append log values to maintain associativity.
 --
 -- >>> (\a -> Logger (listh [4,5]) (a+3)) =<< Logger (listh [1,2]) 3
 -- Logger [1,2,4,5] 6
-instance Bind (Logger l) where
+instance Monad (Logger l) where
   f =<< (Logger xL x) =
     -- f :: a -> Logger l b
     let newLogger = f x
@@ -330,8 +348,6 @@ instance Bind (Logger l) where
         newLogs = getLog newLogger
         y = getValue newLogger
     in Logger (xL ++ newLogs) (y)
-
-instance Monad (Logger l) where
 
 -- | A utility function for producing a `Logger` with one log value.
 --

@@ -14,8 +14,7 @@
 *.lkshs
 
 # Intellij IDEA
-/.idea/workspace.xml
-/.idea/ant.xml
+/.idea
 
 # darcs
 /_darcs
@@ -28,4 +27,7 @@ TAGS
 /target
 
 *.swp
+
+# Stack
+.stack-work/
 

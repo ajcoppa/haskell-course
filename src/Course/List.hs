@@ -4,7 +4,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 -- + Complete the 10 exercises below by filling out the function bodies.
---   Replace the function bodies (error "todo") with an appropriate solution.
+--   Replace the function bodies (error "todo: ...") with an appropriate
+--   solution.
 -- + These exercises may be done in any order, however:
 --   Exercises are generally increasing in difficulty, though some people may find later exercise easier.
 -- + Bonus for using the provided functions or for using one exercise solution to help solve another.
@@ -12,6 +13,8 @@
 
 module Course.List where
 
+import qualified Control.Applicative as A
+import qualified Control.Monad as M
 import Course.Core
 import Course.Optional
 import qualified System.Environment as E
@@ -23,7 +26,7 @@ import qualified Numeric as N
 -- >>> import Test.QuickCheck
 -- >>> import Course.Core(even, id, const)
 -- >>> import qualified Prelude as P(fmap, foldr)
--- >>> instance Arbitrary a => Arbitrary (List a) where arbitrary = P.fmap (P.foldr (:.) Nil) arbitrary
+-- >>> instance Arbitrary a => Arbitrary (List a) where arbitrary = P.fmap ((P.foldr (:.) Nil) :: ([a] -> List a)) arbitrary
 
 -- BEGIN Helper functions and data types
 
@@ -74,6 +77,7 @@ headOr ::
   -> a
 headOr a Nil = a
 headOr _ (x :. _) = x
+
 
 -- | The product of the elements of a list.
 --
@@ -198,9 +202,19 @@ flatMap ::
   -> List b
 flatMap f = flatten . map f
 
+-- | Flatten a list of lists to a list (again).
+-- HOWEVER, this time use the /flatMap/ function that you just wrote.
+--
+-- prop> let types = x :: List (List Int) in flatten x == flattenAgain x
+flattenAgain ::
+  List (List a)
+  -> List a
+flattenAgain =
+  error "todo: Course.List#flattenAgain"
+
 -- | Convert a list of optional values to an optional list of values.
 --
--- * If the list contains all `Full` values, 
+-- * If the list contains all `Full` values,
 -- then return `Full` list of values.
 --
 -- * If the list contains one or more `Empty` values,
@@ -282,6 +296,9 @@ lengthGT4Helper n (_ :. xs) = if n > 4
 -- >>> reverse Nil
 -- []
 --
+-- >>> take 1 (reverse (reverse largeList))
+-- [1]
+--
 -- prop> let types = x :: List Int in reverse x ++ reverse y == reverse (y ++ x)
 --
 -- prop> let types = x :: Int in reverse (x :. Nil) == x :. Nil
@@ -318,6 +335,13 @@ notReverse ::
   List a
   -> List a
 notReverse = reverse
+
+---- End of list exercises
+
+largeList ::
+  List Int
+largeList =
+  listh [1..50000]
 
 hlist ::
   List a
@@ -659,6 +683,23 @@ stringconcat ::
   -> P.String
 stringconcat =
   P.concat
+
+show' ::
+  Show a =>
+  a
+  -> List Char
+show' =
+  listh . show
+
+instance P.Functor List where
+  fmap =
+    M.liftM
+
+instance A.Applicative List where
+  (<*>) =
+    M.ap
+  pure =
+    (:. Nil)
 
 instance P.Monad List where
   (>>=) =

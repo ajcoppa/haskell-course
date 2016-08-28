@@ -1,5 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE RebindableSyntax #-}
 
 module Course.State where
 
@@ -8,9 +10,7 @@ import qualified Prelude as P
 import Course.Optional
 import Course.List
 import Course.Functor
-import Course.Apply
 import Course.Applicative
-import Course.Bind
 import Course.Monad
 import qualified Data.Set as S
 
@@ -35,36 +35,53 @@ newtype State s a =
 -- >>> runState ((+1) <$> pure 0) 0
 -- (1,0)
 instance Functor (State s) where
+  (<$>) ::
+    (a -> b)
+    -> State s a
+    -> State s b
   f <$> (State g) =
     State $ \s -> let (x,s') = g s in (f x, s')
 
--- | Implement the `Apply` instance for `State s`.
+-- | Implement the `Applicative` instance for `State s`.
+--
+-- >>> runState (pure 2) 0
+-- (2,0)
+--
 -- >>> runState (pure (+1) <*> pure 0) 0
 -- (1,0)
 --
 -- >>> import qualified Prelude as P
 -- >>> runState (State (\s -> ((+3), s P.++ ["apple"])) <*> State (\s -> (7, s P.++ ["banana"]))) []
 -- (10,["apple","banana"])
-instance Apply (State s) where
+instance Applicative (State s) where
+  pure ::
+    a
+    -> State s a
+  pure x = State $ \s -> (x,s)
+
+  (<*>) ::
+    State s (a -> b)
+    -> State s a
+    -> State s b
   (State sf) <*> (State sx) = State $ \s ->
     let (f, s') = sf s
         (x, s'') = sx s'
     in (f x, s'')
 
--- | Implement the `Applicative` instance for `State s`.
--- >>> runState (pure 2) 0
--- (2,0)
-instance Applicative (State s) where
-  pure x = State $ \s -> (x,s)
-
 -- | Implement the `Bind` instance for `State s`.
+--
 -- >>> runState ((const $ put 2) =<< put 1) 0
 -- ((),2)
-instance Bind (State s) where
+--
+-- >>> let modify f = State (\s -> ((), f s)) in runState (modify (+1) >>= \() -> modify (*2)) 7
+-- ((),16)
+instance Monad (State s) where
+  (=<<) ::
+    (a -> State s b)
+    -> State s a
+    -> State s b
   f =<< (State g) =
     State $ \s -> let (x,s') = g s in runState (f x) s'
-
-instance Monad (State s) where
 
 -- | Run the `State` seeded with `s` and retrieve the resulting state.
 --
@@ -159,9 +176,9 @@ distinct xs =
 -- In contrast, a sad number (not a happy number) is where the sum of the square of its digits never reaches 1
 -- because it results in a recurring sequence.
 --
--- /Tip:/ Use `findM` with `State` and `produce`.
+-- /Tip:/ Use `firstRepeat` with `produce`.
 --
--- /Tip:/ Use `flatten` to write a @square@ function.
+-- /Tip:/ Use `join` to write a @square@ function.
 --
 -- /Tip:/ Use library functions: @Optional#contains@, @Data.Char#digitToInt@.
 --
@@ -180,4 +197,4 @@ isHappy ::
   Integer
   -> Bool
 isHappy =
-  error "todo"
+  error "todo: Course.State#isHappy"

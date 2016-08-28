@@ -21,11 +21,37 @@ programming.
 Exercises are annotated with a comment containing the word "Exercise." The existing code compiles, however answers have
 been replaced with a call to the Haskell `error` function and so the code will throw an exception if it is run. Some
 exercises contain tips, which are annotated with a preceding "Tip:". It is not necessary to adhere to tips. Tips are
-provided for potential guidance, which may be  discarded.
+provided for potential guidance, which may be discarded if you prefer a different path to a solution.
 
 The exercises are designed in a way that requires personal guidance, so if you
 attempt it on your own and feel a little lost, this is normal. All the
 instructions are not contained herein.
+
+### Getting Help
+
+There are two mailing lists for asking questions. All questions are welcome,
+however, your first post might be moderated. This is simply to prevent spam.
+
+1. [[nicta-fp]](https://groups.google.com/forum/#!forum/nicta-fp) is a Google
+   Group for any queries related to functional programming. This mailing list is
+   owned by NICTA and is open to the public. Questions relating to this course
+   are most welcome here.
+
+2. [[haskell-exercises]](https://groups.google.com/forum/#!forum/haskell-exercises)
+   is a Google Group for queries related specifically to this NICTA funtional
+   programming course material. This mailing list is not owned by NICTA, but is
+   run by others who are keen to share ideas relating to the course. 
+
+3. \#scalaz [on Freenode](irc://irc.freenode.net/#scalaz) is an IRC channel that is operated
+   by others who are keen to share ideas relating to functional programming in
+   general. Most of the participants of this channel have completed the NICTA 
+   functional programming course to some extent. They are in various timezones
+   and share a passion for functional programming, so may be able to provide
+   relatively quick assistance with questions.
+
+4. \#nicta-course [on Freenode](irc://irc.freenode.net/#nicta-course) is an IRC channel that
+   is operated by others who are going through this course material on their
+   own time and effort.
 
 ### Getting Started
 
@@ -34,10 +60,12 @@ instructions are not contained herein.
 2. Change to the directory containing this document.
 
 3. Execute the command `ghci`, which will compile and load all the source code.
-   You may need to set permissions on a file, `chmod 600 .ghci`.
+   You may need to set permissions on the root directory and the ghci configuration
+   file, `chmod 600 .ghci ./`.
 
-4. The `Intro` module does not contain exercises. Its purpose is to demonstrate
-   the structure of a project. The first recommend exercise is `Course.List`.
+4. Inspect the introductory modules to get a feel for Haskell's syntax, then move
+   on to the exercises starting with `Course.List`. The [Progression](#progression)
+   section of this document lists the recommended order in which to attempt the exercises.
 
 5. Edit a source file to a proposed solution to an exercise. At the `ghci`
    prompt, issue the command `:reload`. This will compile your solution and
@@ -68,7 +96,7 @@ instructions are not contained herein.
 
    `> :type reverse`
 
-   `[t] -> [t]`
+   `List t -> List t`
 
    This tells you that the `reverse` function takes a list of elements of some
    arbitrary type (`t`) and returns a list of elements of that same type. Try
@@ -140,39 +168,76 @@ compiler error.
 
 ### Progression
 
-It is recommended to perform some exercises before others. The first step is to inspect the introduction modules.
+It is recommended to perform some exercises before others. The first step is to
+inspect the introduction modules.
 
 * `Course.Id`
 * `Course.Optional`
 * `Course.Validation`
 
-They contain examples of data structures and Haskell syntax. They do not contain exercises and exist to provide 
-a cursory examination of Haskell syntax. The next step is to complete the exercises in `Course.List`.
+They contain examples of data structures and Haskell syntax. They do not contain
+exercises and exist to provide a cursory examination of Haskell syntax. The next
+step is to complete the exercises in `Course.List`.
 
 After this, the following progression of modules is recommended:
 
 * `Course.Functor`
-* `Course.Apply`
 * `Course.Applicative`
-* `Course.Bind`
-* `Course.Monad`
+* `Course.Monad` (please see [this issue](https://github.com/NICTA/course/issues/118))
 * `Course.FileIO`
 * `Course.State`
 * `Course.StateT`
 * `Course.Extend`
 * `Course.Comonad`
+* `Course.Compose`
+* `Course.Traversable`
 * `Course.ListZipper`
-* `Course.Parser`
+* `Course.Parser` *(see also `Course.Person` for the parsing rules)*
 * `Course.MoreParser`
 * `Course.JsonParser`
 * `Course.Interactive`
 * `Course.Anagrams`
 * `Course.FastAnagrams`
-* `Course.EditDistance`
-* `Course.BKTree`
 * `Course.Cheque`
 
+During this progression, it is often the case that some exercises are abandoned
+due to time constraints and the benefit of completing some exercises over
+others. For example, in the progression, `Course.Functor` to `Course.Monad`, the
+exercises repeat a similar theme. Instead, a participant may wish to do
+different exercises, such as `Course.Parser`. In this case, the remaining
+answers are filled out, so that progress on to `Course.Parser` can begin
+(which depends on correct answers up to `Course.Monad`). It is recommended to 
+take this deviation if it is felt that there is more reward in doing so.
+
+Answers for the exercises can be found here:
+[https://github.com/tonymorris/course](https://github.com/tonymorris/course)
+
 After these are completed, complete the exercises in the `projects` directory.
+
+### Leksah
+
+If you choose to use the [Leksah IDE for Haskell](http://leksah.org/), the
+following tips are recommended:
+
+* Clone the git repo use Package -> Add to add course.cabal.
+* Click on the green tick on the toolbar to include `cabal test`
+  in each build and list the failures in the Errors pane.
+* Choose Package -> Configure to make sure `--enable-tests`
+  is used (just building may cause cabal to configure without).
+* Ctrl + B to build (Command + B on OS X).
+* The test failures should show up in Panes -> Errors.
+* Pane -> Log often has useful error messages.
+* Ctrl + J (Command + J on OS X) selects the next item in
+  Errors pane and goes to it in the source (hold down Shift
+  to go to previous item).
+* Ctrl + Enter on a line starting "-- >>>" will run the
+  selected expression in GHCi (Ctrl + Enter on OS X too).
+  The output goes to Panes -> Log and Panes -> Output.
+* The last GHCi expression is reevaluated after each :reload
+  triggered by changes in the code.
+* Uncheck Debug -> GHCi when you are done with GHCi and
+  Leksah will go back to running cabal build and cabal test
+  instead.
 
 ### References
 

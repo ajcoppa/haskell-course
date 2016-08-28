@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Course.Functor where
 
@@ -7,8 +8,16 @@ import Course.Core
 import Course.Id
 import Course.Optional
 import Course.List
-import qualified Prelude as P
+import qualified Prelude as P(fmap)
 
+-- | All instances of the `Functor` type-class must satisfy two laws. These laws
+-- are not checked by the compiler. These laws are given as:
+--
+-- * The law of identity
+--   `∀x. (id <$> x) ≅ x`
+--
+-- * The law of composition
+--   `∀f g x.(f . g <$> x) ≅ (f <$> (g <$> x))`
 class Functor f where
   -- Pronounced, eff-map.
   (<$>) ::
@@ -28,6 +37,10 @@ infixl 4 <$>
 -- >>> (+1) <$> Id 2
 -- Id 3
 instance Functor Id where
+  (<$>) ::
+    (a -> b)
+    -> Id a
+    -> Id b
   (<$>) = mapId
 
 -- | Maps a function on the List functor.
@@ -38,6 +51,10 @@ instance Functor Id where
 -- >>> (+1) <$> (1 :. 2 :. 3 :. Nil)
 -- [2,3,4]
 instance Functor List where
+  (<$>) ::
+    (a -> b)
+    -> List a
+    -> List b
   (<$>) = map
 
 -- | Maps a function on the Optional functor.
@@ -48,6 +65,10 @@ instance Functor List where
 -- >>> (+1) <$> Full 2
 -- Full 3
 instance Functor Optional where
+  (<$>) ::
+    (a -> b)
+    -> Optional a
+    -> Optional b
   (<$>) = mapOptional
 
 -- | Maps a function on the reader ((->) t) functor.
@@ -55,14 +76,18 @@ instance Functor Optional where
 -- >>> ((+1) <$> (*2)) 8
 -- 17
 instance Functor ((->) t) where
+  (<$>) ::
+    (a -> b)
+    -> ((->) t a)
+    -> ((->) t b)
   (<$>) = (.)
 
 -- | Anonymous map. Maps a constant value on a functor.
 --
--- >>> 7 <$ [1,2,3]
+-- >>> 7 <$ (1 :. 2 :. 3 :. Nil)
 -- [7,7,7]
 --
--- prop> x <$ [a,b,c] == [x,x,x]
+-- prop> x <$ (a :. b :. c :. Nil) == (x :. x :. x :. Nil)
 --
 -- prop> x <$ Full q == Full x
 (<$) ::
@@ -74,7 +99,7 @@ instance Functor ((->) t) where
 
 -- | Anonymous map producing unit value.
 --
--- >>> void [1,2,3]
+-- >>> void (1 :. 2 :. 3 :. Nil)
 -- [(),(),()]
 --
 -- >>> void (Full 7)
@@ -100,13 +125,5 @@ void = (() <$)
 -- >>> reverse <$> (putStr "hi" P.>> P.return ("abc" :: List Char))
 -- hi"cba"
 instance Functor IO where
-  (<$>) =
-    P.fmap
-
-instance Functor [] where
-  (<$>) =
-    P.fmap
-
-instance Functor P.Maybe where
   (<$>) =
     P.fmap
