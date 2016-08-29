@@ -116,7 +116,7 @@ get = State $ \s -> (s,s)
 put ::
   s
   -> State s ()
-put x = State $ \_ -> ((),x)
+put x = State $ const ((),x)
 
 -- | Find the first element in a `List` that satisfies a given predicate.
 -- It is possible that no element is found, hence an `Optional` result.
@@ -139,7 +139,7 @@ findM ::
   -> f (Optional a)
 findM _ Nil = pure Empty
 findM f (x :. xs) =
-  (f x) >>= \p ->
+  f x >>= \p ->
     if p then pure (Full x) else findM f xs
 
 -- | Find the first element in a `List` that repeats.

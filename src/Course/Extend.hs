@@ -51,7 +51,7 @@ instance Extend List where
     -> List a
     -> List b
   _f <<= Nil = Nil
-  f  <<= xs@(_ :. remXs) = (f xs) :. (f <<= remXs)
+  f  <<= xs@(_ :. remXs) = f xs :. (f <<= remXs)
 
 -- | Implement the @Extend@ instance for @Optional@.
 --

@@ -98,7 +98,7 @@ instance Applicative List where
     List (a -> b)
     -> List a
     -> List b
-  fs <*> xs = flatMap (\f -> map f xs) fs
+  fs <*> xs = flatMap (`map` xs) fs
 
 -- | Insert into an Optional.
 --
@@ -122,7 +122,7 @@ instance Applicative Optional where
     Optional (a -> b)
     -> Optional a
     -> Optional b
-  (<*>) = twiceOptional (id)
+  (<*>) = twiceOptional id
 
 -- | Insert into a constant function.
 --

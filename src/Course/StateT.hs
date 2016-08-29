@@ -48,7 +48,7 @@ instance Functor f => Functor (StateT s f) where
         applyToFirst :: (a -> b) -> (a, c) -> (b, c)
         applyToFirst f (x,y) = (f x, y)
     -- then we can fmap it over f to get f (b, s)!
-    in (applyToFirst g) <$> stateResult)
+    in applyToFirst g <$> stateResult)
 
 -- | Implement the `Applicative` instance for @StateT s f@ given a @Monad f@.
 --
@@ -224,7 +224,7 @@ data OptionalT f a =
 -- >>> runOptionalT $ (+1) <$> OptionalT (Full 1 :. Empty :. Nil)
 -- [Full 2,Empty]
 instance Functor f => Functor (OptionalT f) where
-  f <$> (OptionalT x) = OptionalT $ (mapOptional f) <$> x
+  f <$> (OptionalT x) = OptionalT $ mapOptional f <$> x
   -- or...            = OptionalT $ (f <$>) <$> x
 
 -- | Implement the `Applicative` instance for `OptionalT f` given a Applicative f.
@@ -235,7 +235,7 @@ instance Applicative f => Applicative (OptionalT f) where
   pure x = OptionalT $ pure (Full x)
 
   (OptionalT foF) <*> (OptionalT foX) = OptionalT $
-    (twiceOptional ($)) <$> foF <*> foX
+    twiceOptional ($) <$> foF <*> foX
   {- Explanation: twiceOptional feeds two Optionals into a function,
   returning Empty if either argument is Empty. If we make our function
   ($), it'll apply a function we give it to a value we give it, returning
@@ -299,7 +299,7 @@ instance Monad f => Monad (OptionalT f) where
     back an entire OptionalT m b, so we need to strip off the OptionalT wrapper
     to satisfy our return type.
     -}
-        helper g (Full x) = runOptionalT $ g x
+        helper h (Full x) = runOptionalT $ h x
     {-
     Now we've got an m (Optional b), and we've run g, fulfilling our goal.
 
@@ -341,13 +341,13 @@ instance Monad (Logger l) where
   f =<< (Logger xL x) =
     -- f :: a -> Logger l b
     let newLogger = f x
-        getLog :: (Logger l a) -> List l
+        getLog :: Logger l a -> List l
         getLog (Logger ls _) = ls
-        getValue :: (Logger l a) -> a
+        getValue :: Logger l a -> a
         getValue (Logger _ z) = z
         newLogs = getLog newLogger
         y = getValue newLogger
-    in Logger (xL ++ newLogs) (y)
+    in Logger (xL ++ newLogs) y
 
 -- | A utility function for producing a `Logger` with one log value.
 --
@@ -357,7 +357,7 @@ log1 ::
   l
   -> a
   -> Logger l a
-log1 l x = Logger (l :. Nil) x
+log1 l = Logger (l :. Nil)
 
 -- | Remove all duplicate integers from a list. Produce a log as you go.
 -- If there is an element above 100, then abort the entire computation and produce no result.
@@ -390,11 +390,10 @@ distinctG xs =
       -- base case to get types right:
       -- OptionalT $ Logger Nil Empty
       let xStr = listh $ show x
-          message = if x > 100
-            then ("aborting > 100: " ++ xStr) :. Nil
-            else if even x
-              then ("even number: " ++ xStr) :. Nil
-              else Nil
+          message
+            | x > 100   = ("aborting > 100: " ++ xStr) :. Nil
+            | even x    = ("even number: " ++ xStr) :. Nil
+            | otherwise = Nil
           optValue = if x > 100
             then Empty
             else Full (S.notMember x s, S.insert x s)

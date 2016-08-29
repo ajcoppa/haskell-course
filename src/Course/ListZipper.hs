@@ -253,15 +253,18 @@ findLeft ::
   (a -> Bool)
   -> ListZipper a
   -> MaybeListZipper a
-findLeft p lz@(ListZipper xs y zs) =
-  if p y
-  then IsZ lz
-  else if hasLeft lz
-    then let newXs = drop 1 xs
-             (newY :. _) = xs
-             newZs = y :. zs
-         in findLeft p (ListZipper newXs newY newZs)
-    else IsNotZ
+findLeft p lz@(ListZipper _ y _)
+  | p y = IsZ lz
+  | hasLeft lz =
+    findLeft p (leftHelper lz)
+  | otherwise = IsNotZ
+
+leftHelper :: ListZipper a -> ListZipper a
+leftHelper (ListZipper xs y zs) =
+  let newXs = drop 1 xs
+      (newY :. _) = xs
+      newZs = y :. zs
+  in ListZipper newXs newY newZs
 
 -- | Seek to the right for a location matching a predicate, starting from the
 -- current one.
@@ -285,15 +288,18 @@ findRight ::
   (a -> Bool)
   -> ListZipper a
   -> MaybeListZipper a
-findRight p lz@(ListZipper xs y zs) =
-  if p y
-  then IsZ lz
-  else if hasRight lz
-    then let newXs = y :. xs
-             (newY :. _) = zs
-             newZs = drop 1 zs
-         in findRight p (ListZipper newXs newY newZs)
-    else IsNotZ
+findRight p lz@(ListZipper _ y _)
+  | p y = IsZ lz
+  | hasRight lz =
+    findRight p (rightHelper lz)
+  | otherwise = IsNotZ
+
+rightHelper :: ListZipper a -> ListZipper a
+rightHelper (ListZipper xs y zs) =
+  let newXs = y :. xs
+      (newY :. _) = zs
+      newZs = drop 1 zs
+  in ListZipper newXs newY newZs
 
 -- | Move the zipper left, or if there are no elements to the left, go to the far right.
 --
@@ -309,11 +315,7 @@ moveLeftLoop (ListZipper Nil y zs) =
   let (newY :. remainingReversedZs) = reverse zs
       newXs = remainingReversedZs ++ listh [y]
   in ListZipper newXs newY Nil
-moveLeftLoop (ListZipper xs y zs) =
-  let newXs = drop 1 xs
-      (newY :. _) = xs
-      newZs = y :. zs
-  in ListZipper newXs newY newZs
+moveLeftLoop lz = leftHelper lz
 
 -- | Move the zipper right, or if there are no elements to the right, go to the far left.
 --
@@ -329,11 +331,7 @@ moveRightLoop (ListZipper xs y Nil) =
   let (newY :. remainingReversedXs) = reverse xs
       newZs = remainingReversedXs ++ listh [y]
   in ListZipper Nil newY newZs
-moveRightLoop (ListZipper xs y zs) =
-  let newXs = y :. xs
-      (newY :. _) = zs
-      newZs = drop 1 zs
-  in ListZipper newXs newY newZs
+moveRightLoop lz = rightHelper lz
 
 -- | Move the zipper one position to the left.
 --
