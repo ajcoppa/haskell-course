@@ -114,8 +114,7 @@ sum = foldLeft (+) 0
 length ::
   List a
   -> Int
-length Nil = 0
-length (_ :. xs) = 1 + length xs
+length xs = foldRight (+) 0 (map (const 1) xs)
 
 -- | Map the given function on each element of the list.
 --
@@ -129,8 +128,7 @@ map ::
   (a -> b)
   -> List a
   -> List b
-map _ Nil = Nil
-map f (x :. xs) = f x :. map f xs
+map f = foldRight ((:.) . f) Nil
 
 -- | Return elements satisfying the given predicate.
 --
@@ -209,8 +207,7 @@ flatMap f = flatten . map f
 flattenAgain ::
   List (List a)
   -> List a
-flattenAgain =
-  error "todo: Course.List#flattenAgain"
+flattenAgain = flatMap id
 
 -- | Convert a list of optional values to an optional list of values.
 --
@@ -280,16 +277,8 @@ find f (x :. xs) = if f x
 lengthGT4 ::
   List a
   -> Bool
-lengthGT4 = lengthGT4Helper 0
-
-lengthGT4Helper ::
-  Int
-  -> List a
-  -> Bool
-lengthGT4Helper n Nil = (n > 4)
-lengthGT4Helper n (_ :. xs) = if n > 4
-  then True
-  else lengthGT4Helper (n + 1) xs
+lengthGT4 (_ :. _ :. _ :. _ :. _)= True
+lengthGT4 _ = False
 
 -- | Reverse a list.
 --
